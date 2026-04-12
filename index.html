@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1e40af">
+<title>DALF C1 — Révision</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%231e40af'/%3E%3Ctext x='50' y='68' font-family='sans-serif' font-size='56' font-weight='700' text-anchor='middle' fill='white'%3EC1%3C/text%3E%3C/svg%3E">
+<style>
+  :root {
+    --bg: #f7f8fb;
+    --surface: #ffffff;
+    --text: #1f2937;
+    --muted: #6b7280;
+    --border: #e5e7eb;
+    --accent: #1e40af;
+    --accent-light: #3b82f6;
+    --success: #059669;
+    --warning: #d97706;
+    --danger: #dc2626;
+    --radius: 14px;
+    --shadow: 0 4px 12px rgba(17, 24, 39, 0.08);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 17px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  #app {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: env(safe-area-inset-top, 16px) 16px env(safe-area-inset-bottom, 16px);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 4px 16px;
+  }
+  header h1 {
+    font-size: 20px; margin: 0; color: var(--accent); font-weight: 700;
+  }
+  header .sub { font-size: 13px; color: var(--muted); }
+  .screen { flex: 1; display: none; flex-direction: column; gap: 16px; }
+  .screen.active { display: flex; }
+
+  /* Écran d'accueil */
+  .home-grid { display: flex; flex-direction: column; gap: 14px; margin-top: 8px; }
+  .big-btn {
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px 20px;
+    font-size: 19px;
+    font-weight: 600;
+    color: var(--text);
+    text-align: left;
+    cursor: pointer;
+    box-shadow: var(--shadow);
+    transition: transform 0.08s ease, border-color 0.15s ease;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .big-btn:active { transform: scale(0.98); }
+  .big-btn:hover { border-color: var(--accent-light); }
+  .big-btn .emoji { font-size: 28px; }
+  .big-btn .sub { font-size: 14px; color: var(--muted); font-weight: 400; }
+  .big-btn.primary { background: var(--accent); color: white; border-color: var(--accent); }
+  .big-btn.primary .sub { color: #c7d2fe; }
+  .big-btn[disabled] { opacity: 0.5; cursor: not-allowed; }
+
+  .stats-strip {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-top: 8px;
+  }
+  .stat {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 10px;
+    text-align: center;
+  }
+  .stat .num { font-size: 22px; font-weight: 700; color: var(--accent); }
+  .stat .lbl { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  /* Session flashcard */
+  .session-top {
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 14px; color: var(--muted);
+  }
+  .session-top .progress {
+    flex: 1; margin: 0 12px; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden;
+  }
+  .session-top .progress > div { height: 100%; background: var(--accent); transition: width 0.3s ease; }
+
+  .card {
+    background: var(--surface);
+    border-radius: 20px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+    padding: 28px 22px;
+    min-height: 260px;
+    display: flex; flex-direction: column;
+    cursor: pointer;
+    user-select: none;
+  }
+  .card .term {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--accent);
+    text-align: center;
+    margin: auto 0;
+    line-height: 1.3;
+  }
+  .card .meta-tag {
+    display: inline-block;
+    font-size: 12px;
+    color: var(--muted);
+    background: #eef2ff;
+    padding: 3px 10px;
+    border-radius: 999px;
+    margin-bottom: 8px;
+    align-self: flex-start;
+  }
+  .card .tap-hint { font-size: 13px; color: var(--muted); text-align: center; margin-top: 16px; }
+
+  .card.back .term { font-size: 22px; color: var(--text); text-align: left; margin-top: 4px; }
+  .card .zh { font-size: 26px; font-weight: 600; color: #b91c1c; margin: 10px 0 6px; line-height: 1.3; }
+  .card .definition { font-size: 17px; margin: 8px 0 6px; color: #374151; }
+  .card .example { font-size: 14px; font-style: italic; color: #6366f1; margin-top: 10px; line-height: 1.5; border-left: 3px solid #c7d2fe; padding-left: 8px; }
+  .card .note-block { margin-top: 14px; }
+  .card .note-block label { font-size: 13px; color: var(--muted); display: block; margin-bottom: 4px; }
+  .card .note-block textarea {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px;
+    font-family: inherit;
+    font-size: 15px;
+    resize: vertical;
+    min-height: 50px;
+    background: #fafbfc;
+  }
+
+  .tts-btn {
+    background: #eef2ff;
+    border: none;
+    border-radius: 999px;
+    width: 44px; height: 44px;
+    font-size: 22px;
+    cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    margin-left: 8px;
+  }
+  .tts-btn:active { background: #dbeafe; }
+
+  .rating-row {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 4px;
+  }
+  .rate-btn {
+    padding: 16px 18px;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 17px;
+    font-weight: 600;
+    color: white;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: space-between;
+    min-height: 60px;
+    width: 100%;
+    text-align: left;
+    gap: 12px;
+  }
+  .rate-btn .label-main { flex: 1; display: flex; align-items: center; gap: 10px; }
+  .rate-btn .label-main .icon { font-size: 22px; flex-shrink: 0; }
+  .rate-btn .interval {
+    font-size: 12px;
+    font-weight: 500;
+    opacity: 0.95;
+    background: rgba(255,255,255,0.22);
+    padding: 4px 10px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .rate-btn.again { background: var(--danger); }
+  .rate-btn.hard  { background: var(--warning); }
+  .rate-btn.good  { background: var(--success); }
+  .rate-btn:active { filter: brightness(0.92); }
+
+  /* Niveaux de mémorisation */
+  .level-bar-wrap { margin: 8px 0 4px; }
+  .level-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; font-size: 14px; }
+  .level-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+  .level-label { flex: 1; }
+  .level-count { font-weight: 600; min-width: 30px; text-align: right; }
+  .level-bar-bg { flex: 2; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+  .level-bar-fill { height: 100%; border-radius: 3px; transition: width 0.4s ease; }
+  .level-details { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-top: 6px; }
+  .level-details summary {
+    padding: 10px 14px; font-size: 14px; font-weight: 600; cursor: pointer;
+    display: flex; align-items: center; gap: 8px; list-style: none; user-select: none;
+  }
+  .level-details summary::-webkit-details-marker { display: none; }
+  .level-details summary::after { content: '▸'; margin-left: auto; font-size: 12px; color: var(--muted); transition: transform 0.2s; }
+  .level-details[open] summary::after { transform: rotate(90deg); }
+  .level-word-list { padding: 4px 14px 12px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .level-chip { font-size: 13px; background: var(--bg); border: 1px solid var(--border); border-radius: 20px; padding: 3px 10px; color: var(--text); }
+
+  /* Écran progression */
+  .prog-block {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow);
+  }
+  .prog-block h3 { margin: 0 0 10px; font-size: 16px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+  .prog-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 15px; }
+  .prog-row:last-child { border: none; }
+  .prog-row .val { font-weight: 600; color: var(--accent); }
+  .chart-wrap { height: 140px; margin-top: 8px; }
+
+  /* Barre de nav */
+  .back-btn {
+    background: transparent; border: none;
+    font-size: 15px; color: var(--accent); cursor: pointer;
+    padding: 4px 0; display: flex; align-items: center; gap: 6px;
+  }
+
+  /* Filtres */
+  .filter-row {
+    display: flex; gap: 8px; flex-wrap: wrap;
+    background: var(--surface);
+    padding: 12px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+  }
+  .filter-row label { font-size: 13px; color: var(--muted); }
+  .filter-row select {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 14px;
+    background: white;
+    font-family: inherit;
+  }
+
+  /* Empty state */
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--muted);
+  }
+  .empty-state .emoji { font-size: 54px; display: block; margin-bottom: 10px; }
+  .empty-state p { font-size: 16px; margin: 6px 0; }
+
+  /* Toast */
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: #111827; color: white; padding: 10px 18px; border-radius: 999px;
+    font-size: 14px; box-shadow: var(--shadow); z-index: 100;
+    opacity: 0; pointer-events: none; transition: opacity 0.25s;
+  }
+  .toast.show { opacity: 1; }
+
+  /* Sélecteur de rythme */
+  .rhythm-select {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .rhythm-select select {
+    border: none;
+    background: transparent;
+    font-family: inherit;
+    font-size: 14px;
+    color: var(--accent);
+    font-weight: 600;
+    padding: 4px 0;
+    cursor: pointer;
+  }
+
+  @media (max-width: 360px) {
+    .big-btn { padding: 18px 16px; font-size: 17px; }
+    .card .term { font-size: 24px; }
+    .card .zh { font-size: 22px; }
+    .rate-btn { font-size: 15px; padding: 14px 14px; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div>
+      <h1>DALF C1</h1>
+      <div class="sub" id="header-sub">Chargement…</div>
+    </div>
+    <button id="btn-home" class="back-btn" style="display:none">← Accueil</button>
+  </header>
+
+  <!-- ÉCRAN ACCUEIL -->
+  <section id="screen-home" class="screen active">
+    <div class="stats-strip">
+      <div class="stat"><div class="num" id="stat-due">—</div><div class="lbl">À réviser</div></div>
+      <div class="stat"><div class="num" id="stat-learned">—</div><div class="lbl">Apprises</div></div>
+      <div class="stat"><div class="num" id="stat-streak">—</div><div class="lbl">Série (j)</div></div>
+    </div>
+
+    <div class="rhythm-select">
+      <span>Rythme :</span>
+      <select id="rhythm">
+        <option value="light">Tranquille (max 10 cartes / 5 nouvelles max)</option>
+        <option value="normal" selected>Normal (max 20 cartes / 12 nouvelles max)</option>
+        <option value="intense">Intensif (max 30 cartes / 20 nouvelles max)</option>
+      </select>
+    </div>
+
+    <div class="home-grid">
+      <button class="big-btn primary" id="btn-review">
+        <span class="emoji">📚</span>
+        <span>Réviser maintenant</span>
+        <span class="sub" id="review-sub">Flashcards dues + nouvelles cartes</span>
+      </button>
+      <button class="big-btn" id="btn-progress">
+        <span class="emoji">📊</span>
+        <span>Voir ma progression</span>
+        <span class="sub">Mots maîtrisés, série, historique</span>
+      </button>
+    </div>
+  </section>
+
+  <!-- ÉCRAN SESSION -->
+  <section id="screen-session" class="screen">
+    <div class="session-top">
+      <span id="session-idx">1</span>
+      <div class="progress"><div id="session-bar" style="width:0%"></div></div>
+      <span id="session-total">10</span>
+    </div>
+
+    <div class="card" id="card"></div>
+
+    <div class="rating-row" id="rating-row" style="display:none">
+      <button class="rate-btn again" data-q="1">
+        <span class="label-main"><span class="icon">❌</span><span>J'ai oublié</span></span>
+        <span class="interval" id="int-again">&lt; 1 j</span>
+      </button>
+      <button class="rate-btn hard" data-q="3">
+        <span class="label-main"><span class="icon">🤔</span><span>Je me souviens un peu</span></span>
+        <span class="interval" id="int-hard">—</span>
+      </button>
+      <button class="rate-btn good" data-q="5">
+        <span class="label-main"><span class="icon">✅</span><span>Je connais bien</span></span>
+        <span class="interval" id="int-good">—</span>
+      </button>
+    </div>
+  </section>
+
+  <!-- ÉCRAN FIN DE SESSION -->
+  <section id="screen-done" class="screen">
+    <div class="empty-state">
+      <span class="emoji">🎉</span>
+      <h2 style="margin:8px 0">Bravo !</h2>
+      <p id="done-msg">—</p>
+    </div>
+    <button class="big-btn primary" id="btn-done-home">
+      <span>Retour à l'accueil</span>
+    </button>
+  </section>
+
+  <!-- ÉCRAN PROGRESSION -->
+  <section id="screen-progress" class="screen">
+    <div class="prog-block">
+      <h3>Aperçu global</h3>
+      <div class="prog-row"><span>Mots vus au moins une fois</span><span class="val" id="p-seen">0</span></div>
+      <div class="prog-row"><span>Mots maîtrisés (interv. ≥ 21 j)</span><span class="val" id="p-mastered">0</span></div>
+      <div class="prog-row"><span>Mots en cours d'apprentissage</span><span class="val" id="p-learning">0</span></div>
+      <div class="prog-row"><span>Mots jamais vus</span><span class="val" id="p-new">0</span></div>
+      <div class="prog-row"><span>Série actuelle</span><span class="val" id="p-streak">0 j</span></div>
+      <div class="prog-row"><span>Meilleure série</span><span class="val" id="p-best">0 j</span></div>
+    </div>
+
+    <div class="prog-block">
+      <h3>Cartes révisées (14 derniers jours)</h3>
+      <div class="chart-wrap">
+        <canvas id="chart-reviews" width="600" height="140" style="width:100%;height:140px"></canvas>
+      </div>
+    </div>
+
+    <div class="prog-block">
+      <h3>Progression par thème</h3>
+      <div id="themes-table"></div>
+    </div>
+
+    <div class="prog-block">
+      <h3>Niveaux de mémorisation</h3>
+      <div id="levels-summary" class="level-bar-wrap"></div>
+      <div id="levels-lists"></div>
+    </div>
+
+    <button class="big-btn" id="btn-export">
+      <span class="emoji">💾</span>
+      <span>Exporter mes données (JSON)</span>
+      <span class="sub">Sauvegarde de secours</span>
+    </button>
+    <button class="big-btn" id="btn-reset" style="border-color:#fecaca; color:#b91c1c;">
+      <span class="emoji">⚠️</span>
+      <span>Tout réinitialiser</span>
+      <span class="sub">Efface toute la progression locale</span>
+    </button>
+
+    <div class="prog-block" style="font-size:13px; color:var(--muted); line-height:1.7;">
+      <h3>Sources</h3>
+      <p style="margin:0;">Lexique (921 entrées) : <em>Je parle français DALF C1 — Lexique</em>, Éditions Tegos, 2021.</p>
+    </div>
+  </section>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="./data.js"></script>
+<script>
+/* ============================================================
+   DALF C1 — Révision — Logique principale
+   Stockage : localStorage
+   SRS : SM-2 (adapté)
+   ============================================================ */
+
+const STORAGE_KEY = 'dalf_c1_state_v1';
+const RHYTHM_KEY = 'dalf_c1_rhythm';
+const RHYTHMS = {
+  light:   { sessionMax: 10, newPerSession: 5,  label: 'Tranquille' },
+  normal:  { sessionMax: 20, newPerSession: 12, label: 'Normal' },
+  intense: { sessionMax: 30, newPerSession: 20, label: 'Intensif' },
+};
+function getRhythm() {
+  const k = localStorage.getItem(RHYTHM_KEY) || 'normal';
+  return RHYTHMS[k] ? k : 'normal';
+}
+function getRhythmConfig() { return RHYTHMS[getRhythm()]; }
+const MASTERY_INTERVAL = 21;         // jours pour "maîtrisé"
+
+/* ---------- State ---------- */
+let state = loadState();
+let session = null; // { cards: [{id, card}], idx, answered }
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const s = JSON.parse(raw);
+      s.cards = s.cards || {};
+      s.history = s.history || {};
+      s.streak = s.streak || { count: 0, best: 0, lastDay: null };
+      s.notes = s.notes || {};
+      return s;
+    }
+  } catch (e) { console.error('loadState', e); }
+  return { cards: {}, history: {}, streak: { count:0, best:0, lastDay:null }, notes: {} };
+}
+
+function saveState() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch (e) {
+    showToast('Erreur de sauvegarde : ' + e.message);
+  }
+}
+
+/* ---------- Dates ---------- */
+function todayKey() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function daysBetween(a, b) {
+  return Math.round((new Date(b) - new Date(a)) / 86400000);
+}
+function addDays(days) {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return d.toISOString();
+}
+function isDue(card) {
+  if (!card) return true;
+  return new Date(card.due) <= new Date();
+}
+
+/* ---------- SM-2 ---------- */
+// quality: 1 (Difficile), 3 (Moyen), 5 (Facile)
+function applySm2(card, quality) {
+  let c = card || { ef: 2.5, interval: 0, reps: 0, lapses: 0 };
+
+  if (quality < 3) {
+    // Échec : on recommence
+    c.reps = 0;
+    c.interval = 0; // revoir dans la session / aujourd'hui
+    c.lapses = (c.lapses || 0) + 1;
+  } else {
+    if (c.reps === 0) c.interval = 1;
+    else if (c.reps === 1) c.interval = 3;
+    else c.interval = Math.round(c.interval * c.ef);
+    c.reps += 1;
+  }
+  // Mise à jour EF
+  const q = quality;
+  c.ef = Math.max(1.3, c.ef + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02)));
+
+  // Petites corrections ergonomiques
+  if (quality === 3 && c.reps > 0) c.interval = Math.max(1, Math.round(c.interval * 0.9));
+
+  c.due = addDays(c.interval);
+  c.lastReview = new Date().toISOString();
+  return c;
+}
+
+// Prévisualisation des intervalles avant notation
+function previewIntervals(card) {
+  const base = card ? JSON.parse(JSON.stringify(card)) : null;
+  return {
+    again: fmtInt(applySm2(base ? JSON.parse(JSON.stringify(base)) : null, 1).interval),
+    hard:  fmtInt(applySm2(base ? JSON.parse(JSON.stringify(base)) : null, 3).interval),
+    good:  fmtInt(applySm2(base ? JSON.parse(JSON.stringify(base)) : null, 5).interval),
+  };
+}
+function fmtInt(days) {
+  if (days < 1) return '< 1 j';
+  if (days === 1) return '1 j';
+  if (days < 30) return days + ' j';
+  if (days < 365) return Math.round(days/7) + ' sem.';
+  return Math.round(days/30) + ' mois';
+}
+
+/* ---------- Session logic ---------- */
+function buildSession(filter) {
+  filter = filter || {};
+  const cfg = getRhythmConfig();
+  const sessionMax = cfg.sessionMax;
+  const newQuotaMax = cfg.newPerSession;
+
+  const all = DALF_DATA.lexique;
+
+  const filtered = all.filter(e => {
+    if (filter.theme && e.theme !== filter.theme) return false;
+    return true;
+  });
+
+  // 1) Cartes dues parmi les filtrées
+  const dueCards = filtered.filter(e => {
+    const c = state.cards[e.id];
+    return c && isDue(c);
+  });
+  // 2) Cartes neuves (jamais vues)
+  const newCards = filtered.filter(e => !state.cards[e.id]);
+
+  // Mélanger
+  shuffle(dueCards);
+  shuffle(newCards);
+
+  // Composer la session : dues d'abord, puis compléter avec neuves (quota)
+  const picked = [];
+  const dueTarget = Math.min(dueCards.length, sessionMax);
+  for (let i = 0; i < dueTarget && picked.length < sessionMax; i++) picked.push(dueCards[i]);
+
+  const newQuota = Math.min(newQuotaMax, sessionMax - picked.length, newCards.length);
+  for (let i = 0; i < newQuota; i++) picked.push(newCards[i]);
+
+  return picked;
+}
+
+function shuffle(a) {
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i+1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+}
+
+/* ---------- UI ---------- */
+const screens = ['home', 'filter', 'session', 'done', 'progress'];
+function showScreen(name) {
+  screens.forEach(s => {
+    const el = document.getElementById('screen-' + s);
+    if (el) el.classList.toggle('active', s === name);
+  });
+  document.getElementById('btn-home').style.display = (name === 'home') ? 'none' : 'inline-flex';
+  window.scrollTo(0, 0);
+}
+
+function renderHome() {
+  const allLex = DALF_DATA.lexique;
+  let due = 0, learned = 0;
+  for (const e of allLex) {
+    const c = state.cards[e.id];
+    if (c && isDue(c)) due++;
+    if (c && c.interval >= MASTERY_INTERVAL) learned++;
+  }
+  const newCount = allLex.length - Object.keys(state.cards).length;
+
+  document.getElementById('stat-due').textContent = due;
+  document.getElementById('stat-learned').textContent = learned;
+  document.getElementById('stat-streak').textContent = state.streak.count;
+  const cfg = getRhythmConfig();
+  document.getElementById('review-sub').textContent =
+    due > 0 ? (due + ' dues · ' + Math.min(newCount, cfg.newPerSession) + ' nouvelles')
+            : (newCount > 0 ? Math.min(newCount, cfg.newPerSession) + ' nouvelles cartes' : 'Tout est à jour ! 🌟');
+  document.getElementById('header-sub').textContent = allLex.length + ' mots · DALF C1';
+
+  // Synchroniser le select avec l'état stocké
+  const rhSel = document.getElementById('rhythm');
+  if (rhSel) rhSel.value = getRhythm();
+}
+
+function startSession(filter) {
+  const picked = buildSession(filter || {});
+  if (picked.length === 0) {
+    showToast('Aucune carte à réviser pour ce filtre.');
+    return;
+  }
+  session = { cards: picked, idx: 0, answered: 0, filter: filter || {}, revealedAt: null, startedAt: Date.now() };
+  showScreen('session');
+  renderCard();
+}
+
+function renderCard() {
+  if (!session) return;
+  const entry = session.cards[session.idx];
+  document.getElementById('session-idx').textContent = session.idx + 1;
+  document.getElementById('session-total').textContent = session.cards.length;
+  document.getElementById('session-bar').style.width = ((session.idx / session.cards.length) * 100) + '%';
+
+  const card = document.getElementById('card');
+  const tag = `<span class="meta-tag">${entry.theme}</span>`;
+  card.className = 'card';
+  card.innerHTML = `
+    ${tag}
+    <div class="term">${escapeHtml(entry.term)}</div>
+    <div class="tap-hint">Touchez la carte pour voir la définition</div>
+  `;
+  card.onclick = () => revealCard(entry);
+  document.getElementById('rating-row').style.display = 'none';
+  session.revealedAt = null;
+}
+
+function revealCard(entry) {
+  const card = document.getElementById('card');
+  const userCard = state.cards[entry.id] || null;
+  const prev = previewIntervals(userCard);
+  const note = state.notes[entry.id] || '';
+  const zh = entry.zh || '';
+  const ex = entry.example || '';
+  card.className = 'card back';
+  card.innerHTML = `
+    <span class="meta-tag">${entry.theme}</span>
+    <div style="display:flex; align-items:center; gap:6px;">
+      <div class="term" style="flex:1">${escapeHtml(entry.term)}</div>
+      <button class="tts-btn" id="tts-btn" aria-label="Écouter">🔊</button>
+    </div>
+    ${zh ? `<div class="zh" lang="zh">${escapeHtml(zh)}</div>` : ''}
+    <div class="definition">${escapeHtml(entry.definition)}</div>
+    ${ex ? `<div class="example">${escapeHtml(ex)}</div>` : ''}
+    <div class="note-block">
+      <label for="note-area">Ma note personnelle (facultatif)</label>
+      <textarea id="note-area" placeholder="Mnémo, exemple perso, traduction alternative…">${escapeHtml(note)}</textarea>
+    </div>
+  `;
+  card.onclick = null;
+  document.getElementById('tts-btn').onclick = (e) => { e.stopPropagation(); speak(entry.term); };
+  document.getElementById('note-area').oninput = (e) => {
+    state.notes[entry.id] = e.target.value;
+    saveState();
+  };
+
+  document.getElementById('int-again').textContent = prev.again;
+  document.getElementById('int-hard').textContent  = prev.hard;
+  document.getElementById('int-good').textContent  = prev.good;
+  document.getElementById('rating-row').style.display = 'grid';
+  session.revealedAt = Date.now();
+}
+
+function rateCard(quality) {
+  if (!session || session.revealedAt === null) return;
+  const entry = session.cards[session.idx];
+  const prev = state.cards[entry.id] || null;
+  const updated = applySm2(prev, quality);
+  state.cards[entry.id] = updated;
+
+  // Historique quotidien — un Set d'IDs par jour (dédoublonné)
+  const tk = todayKey();
+  if (!Array.isArray(state.history[tk])) state.history[tk] = [];
+  if (!state.history[tk].includes(entry.id)) state.history[tk].push(entry.id);
+  updateStreak();
+  saveState();
+  // Garder les stats de l'accueil fraîches en permanence
+  renderHome();
+
+  session.answered++;
+
+  // Si Encore (quality=1), on ré-insère la carte plus loin dans la session,
+  // dans la limite du plafond sessionMax
+  const cfg = getRhythmConfig();
+  if (quality === 1 && session.cards.length < cfg.sessionMax) {
+    const reinsertAt = Math.min(session.cards.length, session.idx + 3 + Math.floor(Math.random()*3));
+    session.cards.splice(reinsertAt, 0, entry);
+  }
+
+  session.idx++;
+  if (session.idx >= session.cards.length) {
+    finishSession();
+  } else {
+    renderCard();
+  }
+}
+
+function finishSession() {
+  const answered = session.answered;
+  const elapsed = Math.round((Date.now() - session.startedAt) / 1000);
+  const min = Math.floor(elapsed / 60), sec = elapsed % 60;
+  document.getElementById('done-msg').textContent =
+    `Tu as révisé ${answered} carte${answered>1?'s':''} en ${min} min ${sec} s. Continue comme ça !`;
+  session = null;
+  showScreen('done');
+}
+
+function updateStreak() {
+  const tk = todayKey();
+  if (state.streak.lastDay === tk) return;
+  if (state.streak.lastDay === null) {
+    state.streak.count = 1;
+  } else {
+    const gap = daysBetween(state.streak.lastDay, tk);
+    if (gap === 1) state.streak.count += 1;
+    else state.streak.count = 1;
+  }
+  state.streak.lastDay = tk;
+  if (state.streak.count > state.streak.best) state.streak.best = state.streak.count;
+}
+
+function renderProgress() {
+  const allLex = DALF_DATA.lexique;
+  let seen = 0, mastered = 0, learning = 0;
+  for (const e of allLex) {
+    const c = state.cards[e.id];
+    if (!c) continue;
+    seen++;
+    if (c.interval >= MASTERY_INTERVAL) mastered++;
+    else learning++;
+  }
+  document.getElementById('p-seen').textContent = seen;
+  document.getElementById('p-mastered').textContent = mastered;
+  document.getElementById('p-learning').textContent = learning;
+  document.getElementById('p-new').textContent = allLex.length - seen;
+  document.getElementById('p-streak').textContent = state.streak.count + ' j';
+  document.getElementById('p-best').textContent = state.streak.best + ' j';
+
+  drawChart();
+  renderThemesTable();
+  renderLevels();
+}
+
+function drawChart() {
+  const canvas = document.getElementById('chart-reviews');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.offsetWidth * dpr, h = canvas.offsetHeight * dpr;
+  canvas.width = w; canvas.height = h;
+  ctx.clearRect(0,0,w,h);
+
+  // 14 derniers jours
+  const days = [];
+  const today = new Date();
+  for (let i = 13; i >= 0; i--) {
+    const d = new Date(today); d.setDate(today.getDate() - i);
+    const k = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    const entry = state.history[k];
+    const count = Array.isArray(entry) ? entry.length : (entry || 0);
+    days.push({ key: k, count, date: d });
+  }
+  const maxVal = Math.max(1, ...days.map(d => d.count));
+  const padL = 30*dpr, padR = 10*dpr, padT = 10*dpr, padB = 24*dpr;
+  const bw = (w - padL - padR) / days.length;
+
+  ctx.font = (11*dpr) + 'px sans-serif';
+  ctx.fillStyle = '#9ca3af';
+  ctx.textAlign = 'right';
+  ctx.fillText(maxVal, padL - 4*dpr, padT + 8*dpr);
+  ctx.fillText('0', padL - 4*dpr, h - padB + 4*dpr);
+
+  ctx.strokeStyle = '#e5e7eb';
+  ctx.beginPath();
+  ctx.moveTo(padL, h - padB);
+  ctx.lineTo(w - padR, h - padB);
+  ctx.stroke();
+
+  days.forEach((d, i) => {
+    const bh = (d.count / maxVal) * (h - padT - padB);
+    const x = padL + i * bw + bw * 0.15;
+    const bW = bw * 0.7;
+    const y = h - padB - bh;
+    ctx.fillStyle = d.count > 0 ? '#1e40af' : '#e5e7eb';
+    ctx.fillRect(x, y, bW, bh || 2*dpr);
+    ctx.fillStyle = '#9ca3af';
+    ctx.textAlign = 'center';
+    ctx.fillText(d.date.getDate(), x + bW/2, h - padB + 14*dpr);
+  });
+}
+
+function renderThemesTable() {
+  const container = document.getElementById('themes-table');
+  const byTheme = {};
+  for (const e of DALF_DATA.lexique) {
+    byTheme[e.theme] = byTheme[e.theme] || { total: 0, seen: 0, mastered: 0 };
+    byTheme[e.theme].total++;
+    const c = state.cards[e.id];
+    if (c) byTheme[e.theme].seen++;
+    if (c && c.interval >= MASTERY_INTERVAL) byTheme[e.theme].mastered++;
+  }
+  const rows = Object.entries(byTheme).sort((a,b) => b[1].seen - a[1].seen);
+  container.innerHTML = rows.map(([theme, s]) => {
+    const pct = Math.round((s.seen / s.total) * 100);
+    const masteredLabel = s.mastered > 0 ? ` <small style="color:var(--success);font-weight:400">(${s.mastered} maîtrisés)</small>` : '';
+    return `<div class="prog-row"><span>${escapeHtml(theme)}</span><span class="val">${s.seen}/${s.total} <small style="color:var(--muted);font-weight:400">(${pct}%)</small>${masteredLabel}</span></div>`;
+  }).join('');
+}
+
+/* ---------- Niveaux de mémorisation ---------- */
+const LEVELS = [
+  { key: 'mastered',    label: 'Maîtrisé',         color: '#059669', test: c =>  c && c.interval >= MASTERY_INTERVAL },
+  { key: 'learning',    label: 'En apprentissage',  color: '#1e40af', test: c =>  c && c.interval >= 4 && c.interval < MASTERY_INTERVAL },
+  { key: 'fragile',     label: 'Découvert',          color: '#d97706', test: c =>  c && c.interval < 4 },
+  { key: 'unseen',      label: 'Jamais vu',         color: '#d1d5db', test: c => !c },
+];
+
+function renderLevels() {
+  const total = DALF_DATA.lexique.length;
+  const buckets = {};
+  LEVELS.forEach(l => { buckets[l.key] = []; });
+
+  for (const e of DALF_DATA.lexique) {
+    const c = state.cards[e.id] || null;
+    const level = LEVELS.find(l => l.test(c));
+    if (level) buckets[level.key].push(e);
+  }
+
+  // Résumé avec barres
+  const summary = document.getElementById('levels-summary');
+  summary.innerHTML = LEVELS.map(l => {
+    const count = buckets[l.key].length;
+    const pct = Math.round((count / total) * 100);
+    return `
+      <div class="level-row">
+        <span class="level-dot" style="background:${l.color}"></span>
+        <span class="level-label">${l.label}</span>
+        <span class="level-count" style="color:${l.color}">${count}</span>
+        <span class="level-bar-bg"><span class="level-bar-fill" style="width:${pct}%;background:${l.color}"></span></span>
+        <span style="font-size:12px;color:var(--muted);min-width:34px;text-align:right">${pct} %</span>
+      </div>`;
+  }).join('');
+
+  // Listes dépliables (sauf "Jamais vu" si trop long)
+  const lists = document.getElementById('levels-lists');
+  lists.innerHTML = LEVELS.filter(l => l.key !== 'unseen' && buckets[l.key].length > 0).map(l => {
+    const words = buckets[l.key]
+      .map(e => `<span class="level-chip">${escapeHtml(e.term)}</span>`)
+      .join('');
+    return `
+      <details class="level-details" style="margin-top:10px;border-color:${l.color}40">
+        <summary style="color:${l.color}">
+          <span class="level-dot" style="background:${l.color}"></span>
+          ${l.label} — ${buckets[l.key].length} mot${buckets[l.key].length > 1 ? 's' : ''}
+        </summary>
+        <div class="level-word-list">${words}</div>
+      </details>`;
+  }).join('');
+}
+
+/* ---------- TTS ---------- */
+let ttsVoice = null;
+function initTts() {
+  if (!('speechSynthesis' in window)) return;
+  const pick = () => {
+    const voices = speechSynthesis.getVoices();
+    ttsVoice = voices.find(v => v.lang && v.lang.toLowerCase().startsWith('fr')) || voices[0] || null;
+  };
+  pick();
+  if (speechSynthesis.onvoiceschanged !== undefined) {
+    speechSynthesis.onvoiceschanged = pick;
+  }
+}
+function cleanTermForTts(text) {
+  // Retire la nature grammaticale et tout ce qui suit.
+  // Catégories abrégées couvertes : n., v., adj., adv., loc., pron., prép., conj.,
+  // interj., art., num., pp. (+ suffixes f./m./tr./intr./pl./sing./dir./indir./rel./dém./poss./pers./inv.).
+  // Idée : on coupe au premier token qui ressemble à une abréviation grammaticale FR.
+  const re = /\s+(?:n|v|adj|adv|loc|pron|prép|prep|conj|interj|art|num|pp|f|m|tr|intr|pl|sing|dir|indir|rel|dém|poss|pers|inv|invar|qqn|qqch)\b\.?.*$/i;
+  let clean = text.replace(re, '').trim();
+  // Nettoyage supplémentaire : caractères "&" et parenthèses résiduels
+  clean = clean.replace(/\s*\([^)]*\)\s*/g, ' ').replace(/\s*&\s*/g, ' et ').trim();
+  return clean || text;
+}
+
+function speak(text) {
+  if (!('speechSynthesis' in window)) { showToast('Synthèse vocale indisponible'); return; }
+  const clean = cleanTermForTts(text);
+  const u = new SpeechSynthesisUtterance(clean);
+  u.lang = 'fr-FR';
+  u.rate = 0.95;
+  if (ttsVoice) u.voice = ttsVoice;
+  speechSynthesis.cancel();
+  speechSynthesis.speak(u);
+}
+
+/* ---------- Utils ---------- */
+function escapeHtml(s) {
+  if (s == null) return '';
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function showToast(msg, ms=2200) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), ms);
+}
+
+/* ---------- Events ---------- */
+document.getElementById('btn-review').onclick = () => startSession({});
+document.getElementById('btn-progress').onclick = () => { showScreen('progress'); requestAnimationFrame(renderProgress); };
+document.getElementById('btn-home').onclick = () => { renderHome(); showScreen('home'); };
+document.getElementById('btn-done-home').onclick = () => { renderHome(); showScreen('home'); };
+
+document.getElementById('rating-row').addEventListener('click', (e) => {
+  const btn = e.target.closest('.rate-btn');
+  if (!btn) return;
+  const q = parseInt(btn.dataset.q);
+  rateCard(q);
+});
+
+document.getElementById('btn-export').onclick = () => {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'dalf_c1_progress_' + todayKey() + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Export téléchargé');
+};
+
+document.getElementById('btn-reset').onclick = () => {
+  if (confirm('Effacer toutes les données de progression locales ? Cette action est irréversible.')) {
+    localStorage.removeItem(STORAGE_KEY);
+    location.reload();
+  }
+};
+
+// Sélecteur de rythme
+document.getElementById('rhythm').addEventListener('change', (e) => {
+  const v = e.target.value;
+  if (RHYTHMS[v]) {
+    localStorage.setItem(RHYTHM_KEY, v);
+    renderHome();
+    showToast('Rythme : ' + RHYTHMS[v].label);
+  }
+});
+
+/* ---------- Boot ---------- */
+if (!window.DALF_DATA || !DALF_DATA.lexique) {
+  document.getElementById('header-sub').textContent = 'Erreur : corpus introuvable (data.js manquant)';
+} else {
+  initTts();
+  renderHome();
+}
+
+/* ---------- Service Worker ---------- */
+if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(e => console.warn('SW:', e));
+  });
+}
+</script>
+</body>
+</html>
