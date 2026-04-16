@@ -135,7 +135,37 @@
   .card.back .term { font-size: 22px; color: var(--text); text-align: left; margin-top: 4px; }
   .card .zh { font-size: 26px; font-weight: 600; color: #b91c1c; margin: 10px 0 6px; line-height: 1.3; }
   .card .definition { font-size: 17px; margin: 8px 0 6px; color: #374151; }
-  .card .example { font-size: 14px; font-style: italic; color: #6366f1; margin-top: 10px; line-height: 1.5; border-left: 3px solid #c7d2fe; padding-left: 8px; }
+  .card .examples { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+  .card .example {
+    display: flex; align-items: flex-start; gap: 6px;
+    font-size: 14px; line-height: 1.5;
+    border-left: 3px solid #c7d2fe; padding-left: 8px;
+  }
+  .card .example .ex-text {
+    flex: 1;
+    font-style: italic; color: #6366f1;
+  }
+  .card .example.zh .ex-text {
+    font-style: normal; color: #b91c1c; font-size: 15px;
+  }
+  .card .example .ex-actions {
+    display: flex; gap: 2px; flex-shrink: 0;
+  }
+  .ex-icon {
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    width: 32px; height: 32px;
+    min-width: 32px;
+    padding: 0;
+    font-size: 16px;
+    color: var(--muted);
+    cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    line-height: 1;
+  }
+  .ex-icon:active { background: #eef2ff; }
+  .ex-icon[aria-pressed="true"] { color: var(--accent); }
   .card .note-block { margin-top: 14px; }
   .card .note-block label { font-size: 13px; color: var(--muted); display: block; margin-bottom: 4px; }
   .card .note-block textarea {
@@ -659,7 +689,16 @@ function revealCard(entry) {
   const prev = previewIntervals(userCard);
   const note = state.notes[entry.id] || '';
   const zh = entry.zh || '';
-  const ex = entry.example || '';
+  // Compatibilité : accepte la nouvelle forme `examples` (tableau) et l'ancienne `example` (string).
+  let examples = [];
+  if (Array.isArray(entry.examples)) {
+    examples = entry.examples.filter(e => e && (e.fr || e.zh));
+  } else if (typeof entry.example === 'string' && entry.example.trim()) {
+    examples = [{ fr: entry.example.trim(), zh: '' }];
+  }
+  const examplesHtml = examples.length
+    ? `<div class="examples">${examples.map((e, i) => renderExample(e, i)).join('')}</div>`
+    : '';
   card.className = 'card back';
   card.innerHTML = `
     <span class="meta-tag">${entry.theme}</span>
@@ -669,7 +708,7 @@ function revealCard(entry) {
     </div>
     ${zh ? `<div class="zh" lang="zh">${escapeHtml(zh)}</div>` : ''}
     <div class="definition">${escapeHtml(entry.definition)}</div>
-    ${ex ? `<div class="example">${escapeHtml(ex)}</div>` : ''}
+    ${examplesHtml}
     <div class="note-block">
       <label for="note-area">Ma note personnelle (facultatif)</label>
       <textarea id="note-area" placeholder="Mnémo, exemple perso, traduction alternative…">${escapeHtml(note)}</textarea>
@@ -677,6 +716,20 @@ function revealCard(entry) {
   `;
   card.onclick = null;
   document.getElementById('tts-btn').onclick = (e) => { e.stopPropagation(); speak(entry.term); };
+  // Stocke les exemples pour les handlers (toggle / TTS phrase)
+  card._examples = examples;
+  // Brancher les handlers sur les icônes d'exemples
+  card.querySelectorAll('.example').forEach(row => {
+    const idx = parseInt(row.dataset.idx, 10);
+    const btnToggle = row.querySelector('.ex-toggle');
+    const btnTts = row.querySelector('.ex-tts');
+    if (btnToggle) btnToggle.onclick = (ev) => { ev.stopPropagation(); toggleExampleLang(idx); };
+    if (btnTts) btnTts.onclick = (ev) => {
+      ev.stopPropagation();
+      const ex = card._examples[idx];
+      if (ex && ex.fr) speakSentence(ex.fr);
+    };
+  });
   document.getElementById('note-area').oninput = (e) => {
     state.notes[entry.id] = e.target.value;
     saveState();
@@ -687,6 +740,67 @@ function revealCard(entry) {
   document.getElementById('int-good').textContent  = prev.good;
   document.getElementById('rating-row').style.display = 'grid';
   session.revealedAt = Date.now();
+}
+
+/* ---------- Exemples bilingues ---------- */
+// Rendu d'une ligne d'exemple (FR par défaut, bascule ZH possible).
+// Icônes : 🇫🇷/🇨🇳 pour basculer la langue ; 🔊 (visible en mode FR uniquement).
+function renderExample(ex, idx) {
+  const fr = ex.fr || '';
+  const zh = ex.zh || '';
+  const hasZh = !!zh;
+  // Affichage par défaut : français.
+  const toggleLabel = hasZh ? 'Afficher la traduction chinoise' : 'Traduction indisponible';
+  const toggleIcon = '中';
+  const ttsBtn = `<button type="button" class="ex-icon ex-tts" aria-label="Écouter la phrase" title="Écouter">🔊</button>`;
+  const toggleBtn = hasZh
+    ? `<button type="button" class="ex-icon ex-toggle" aria-label="${toggleLabel}" aria-pressed="false" title="FR ↔ 中">${toggleIcon}</button>`
+    : '';
+  return `
+    <div class="example" data-idx="${idx}" data-lang="fr">
+      <span class="ex-text">${escapeHtml(fr)}</span>
+      <span class="ex-actions">${toggleBtn}${ttsBtn}</span>
+    </div>`;
+}
+
+// Bascule FR ↔ ZH pour la phrase d'index idx dans la carte retournée.
+// Met à jour aussi la visibilité du bouton TTS (masqué en mode ZH) et le libellé a11y.
+function toggleExampleLang(idx) {
+  const card = document.getElementById('card');
+  if (!card || !Array.isArray(card._examples)) return;
+  const ex = card._examples[idx];
+  if (!ex) return;
+  const row = card.querySelector(`.example[data-idx="${idx}"]`);
+  if (!row) return;
+  const txt = row.querySelector('.ex-text');
+  const ttsBtn = row.querySelector('.ex-tts');
+  const toggleBtn = row.querySelector('.ex-toggle');
+  const current = row.dataset.lang || 'fr';
+  const next = current === 'fr' ? 'zh' : 'fr';
+  if (next === 'zh') {
+    if (!ex.zh) return; // pas de traduction : on ne bascule pas
+    txt.textContent = ex.zh;
+    txt.setAttribute('lang', 'zh');
+    row.dataset.lang = 'zh';
+    row.classList.add('zh');
+    if (ttsBtn) ttsBtn.style.display = 'none';
+    if (toggleBtn) {
+      toggleBtn.setAttribute('aria-pressed', 'true');
+      toggleBtn.setAttribute('aria-label', 'Afficher la phrase en français');
+      toggleBtn.textContent = 'FR';
+    }
+  } else {
+    txt.textContent = ex.fr;
+    txt.setAttribute('lang', 'fr');
+    row.dataset.lang = 'fr';
+    row.classList.remove('zh');
+    if (ttsBtn) ttsBtn.style.display = '';
+    if (toggleBtn) {
+      toggleBtn.setAttribute('aria-pressed', 'false');
+      toggleBtn.setAttribute('aria-label', 'Afficher la traduction chinoise');
+      toggleBtn.textContent = '中';
+    }
+  }
 }
 
 function rateCard(quality) {
@@ -912,9 +1026,22 @@ function cleanTermForTts(text) {
 }
 
 function speak(text) {
+  // Utilisé pour les termes du lexique : nettoie les abréviations grammaticales.
   if (!('speechSynthesis' in window)) { showToast('Synthèse vocale indisponible'); return; }
   const clean = cleanTermForTts(text);
-  const u = new SpeechSynthesisUtterance(clean);
+  ttsUtter(clean);
+}
+
+// Variante pour les phrases d'exemple : aucun nettoyage (une phrase complète
+// ne doit surtout pas voir ses mots coupés par la regex de cleanTermForTts).
+function speakSentence(text) {
+  if (!('speechSynthesis' in window)) { showToast('Synthèse vocale indisponible'); return; }
+  if (!text) return;
+  ttsUtter(String(text));
+}
+
+function ttsUtter(text) {
+  const u = new SpeechSynthesisUtterance(text);
   u.lang = 'fr-FR';
   u.rate = 0.95;
   if (ttsVoice) u.voice = ttsVoice;
