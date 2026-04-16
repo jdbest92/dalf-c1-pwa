@@ -10,11 +10,11 @@ Fonctionne hors-ligne, installable sur Android (et tout navigateur moderne), san
 
 **Flashcards avec répétition espacée (SRS)** — algorithme SM-2 adapté. Chaque carte est planifiée selon sa difficulté : les mots mal maîtrisés reviennent plus tôt, les mots bien sus s'espacent progressivement.
 
-**921 entrées lexicales** issues du manuel *Je parle français DALF C1 — Lexique* (Éditions Tegos, 2021), réparties en 12 thèmes : alimentation, environnement, urbanisme, école, consommation, espace, santé, vie en société, langues et francophonie, numérique, travail, loisirs et cultures.
+**921 entrées lexicales** issues du manuel *Je parle français DALF C1 — Lexique* (Éditions Tegos, 2021), réparties en 12 thèmes : alimentation, environnement, urbanisme, école, consommation, espace, santé, vie en société, langues et francophonie, numérique, travail, loisirs et cultures. Chaque entrée est accompagnée de **deux phrases d'exemple** en français avec leur traduction chinoise.
 
 **Traductions en chinois** (caractères simplifiés) affichées sur chaque carte au moment de la révélation.
 
-**Synthèse vocale (TTS)** — prononciation du terme français via l'API Web Speech intégrée au navigateur, sans dépendance externe.
+ **Synthèse vocale (TTS)** — prononciation du terme français et des phrases d'exemple via l'API Web Speech intégrée au navigateur, sans dépendance externe.
 
 **Rythmes de session configurables** :
 - Tranquille — max 10 cartes / 5 nouvelles max
